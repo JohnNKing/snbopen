@@ -45,16 +45,23 @@ def addImage(snbFile,canvas,image,rels,element):
                 img = ImageReader(filename)
 		canvas.drawImage(img,0,0,595.27,841.89,mask="auto")
 		remove(filename)
+	elif imgFileName.endswith(".png"):
+                print element.getElementsByTagName("v:shape")[0].getAttribute("style")
+		style = imagePoss(element.getElementsByTagName("v:shape")[0].getAttribute("style"),"image")
+		img=Image.open(BytesIO(imgStr))
+		filename = "outTmp.png"
+                img.save(filename)
+                img = ImageReader(filename)
+		canvas.drawImage(img,style.left,style.bottom,style.width,style.height,mask="auto")
+		remove(filename)
 	else:
-		style = imagePoss(element.getElementsByTagName("v:shape")[0].getAttribute("style"))
+		style = imagePoss(element.getElementsByTagName("v:shape")[0].getAttribute("style"),"bg")
 		img=Image.open(BytesIO(imgStr))
 		filename = "outTmp.jpg"
                 img.save(filename)
                 img = ImageReader(filename)
 		canvas.drawImage(img,style.left,style.bottom,style.width,style.height,mask="auto")
 		remove(filename)
-		#print "width x height: " + str(style.width) + "x" + str(style.height)
-		#canvas.drawInlineImage(img,style.left,style.bottom,style.width,style.height)
 
 def addText(canvas,element,styles):
 	for run in element.getElementsByTagName("sn:r"):
@@ -104,13 +111,24 @@ class Style:
 
 
 class imagePoss:
-	def __init__(self,style):
-		info = sub(r'[A-Za-z\-:]',"",style).split(";")
-		self.left=float(info[1])
-		self.bottom=841.89 -(float(info[2])+float(info[4]))
-		self.width = float(info[3])
-		self.height = float(info[4])
-
+	def __init__(self,style,imageType):
+                styleDict = dict(item.split(":") for item in style.split(";"))
+                if imageType == "bg":
+                        self.left=float(styleDict["left"].replace("pt",""))
+                        self.bottom=841.89 -(float(styleDict["margin-top"].replace("pt",""))+float(styleDict["height"].replace("pt","")))
+                        self.width = float(styleDict["width"].replace("pt",""))
+                        self.height = float(styleDict["height"].replace("pt",""))
+                elif imageType == "image":
+                        try:
+                                self.left=float(styleDict["margin-left"].replace("pt",""))
+                        except:
+                                self.left=0
+                        try:
+                                self.bottom=841.89-(float(styleDict["margin-top"].replace("pt",""))+float(styleDict["height"].replace("pt","")))
+                        except:
+                                self.bottom=0
+                        self.width = float(styleDict["width"].replace("pt",""))
+                        self.height = float(styleDict["height"].replace("pt",""))
 
 def alpha_to_color(image, color=(255, 255, 255)):
     image.load()  # needed for split()

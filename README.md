@@ -18,4 +18,4 @@ the script should run on python (v2), and require reportlab and PIL (Pillow).
 TODO
 =======
 - text handling is very poor
-- image handling with transparency
+- background picture for all pages
