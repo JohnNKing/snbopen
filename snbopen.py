@@ -4,15 +4,15 @@
 from zipfile import ZipFile
 from xml.dom.minidom import parseString
 from zlib import decompress
-import Image
-from os import system,sep
+from PIL import Image
+from os import system,sep,remove
 from sys import argv
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from reportlab.pdfbase.pdfutils import ImageReader
 from re import sub
 from tempfile import gettempdir
-import webbrowser
+from reportlab.lib.utils import ImageReader
 
 def showUsage():
 	print """
@@ -30,20 +30,31 @@ def zipRead(zipFile,filename):
 def addImage(snbFile,canvas,image,rels,element):
 	imgFileName = "snote/"+rels[image.getAttribute("r:id")]
 	imgStr = zipRead(snbFile,imgFileName)
+	print "Adding image " + imgFileName
 	if imgFileName.endswith(".zdib"):
 		imgStr = decompress(imgStr)
 		width = ord(imgStr[5]) * 256 + ord(imgStr[4])
 		height = ord(imgStr[9]) * 256 + ord(imgStr[8])
+		print "width x height: " + str(width) + "x" + str(height)
 		try:
 			img = Image.frombytes("RGBA",(width,height),imgStr[52:])
 		except:
 			img = Image.fromstring("RGBA",(width,height),imgStr[52:])
-		canvas.drawInlineImage(alpha_to_color(img),0,0,595.27,841.89)
+                filename = "outTmp.png"
+                img.save(filename)
+                img = ImageReader(filename)
+		canvas.drawImage(img,0,0,595.27,841.89,mask="auto")
+		remove(filename)
 	else:
 		style = imagePoss(element.getElementsByTagName("v:shape")[0].getAttribute("style"))
 		img=Image.open(BytesIO(imgStr))
-		canvas.drawInlineImage(img,style.left,style.bottom,style.width,style.height)
-
+		filename = "outTmp.jpg"
+                img.save(filename)
+                img = ImageReader(filename)
+		canvas.drawImage(img,style.left,style.bottom,style.width,style.height,mask="auto")
+		remove(filename)
+		#print "width x height: " + str(style.width) + "x" + str(style.height)
+		#canvas.drawInlineImage(img,style.left,style.bottom,style.width,style.height)
 
 def addText(canvas,element,styles):
 	for run in element.getElementsByTagName("sn:r"):
@@ -95,10 +106,10 @@ class Style:
 class imagePoss:
 	def __init__(self,style):
 		info = sub(r'[A-Za-z\-:]',"",style).split(";")
-		self.left=float(info[2])
-		self.bottom=841.89 -(float(info[3])+float(info[5]))
-		self.width = float(info[4])
-		self.height = float(info[5])
+		self.left=float(info[1])
+		self.bottom=841.89 -(float(info[2])+float(info[4]))
+		self.width = float(info[3])
+		self.height = float(info[4])
 
 
 def alpha_to_color(image, color=(255, 255, 255)):
@@ -110,6 +121,8 @@ def alpha_to_color(image, color=(255, 255, 255)):
 
 def snbToPdf(snbname,pdfname = None ):
 	snbFile=ZipFile(snbname,"r")
+
+	print "processing " + pdfname
 
 	rels = readRelsFile(snbFile)
 	charStyles = readCharStyles(snbFile)
@@ -145,9 +158,9 @@ def snbToPdf(snbname,pdfname = None ):
 
 
 if len(argv)==2:
-	pdfFileName= gettempdir()+sep+sub('.*'+sep,"",argv[1]).replace(".snb",".pdf")
+	#pdfFileName= gettempdir()+sep+sub('.*'+sep,"",argv[1]).replace(".snb",".pdf")
+	pdfFileName= argv[1].replace(".snb",".pdf")
 	snbToPdf(argv[1],pdfFileName)
-	webbrowser.open(pdfFileName)
 elif len (argv)==3:
 	snbToPdf(argv[1],argv[2])
 else:
