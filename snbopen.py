@@ -112,23 +112,23 @@ class Style:
 
 class imagePoss:
 	def __init__(self,style,imageType):
-                styleDict = dict(item.split(":") for item in style.split(";"))
+                styleDict = dict(item.split(":") for item in style.replace("pt","").split(";"))
                 if imageType == "bg":
-                        self.left=float(styleDict["left"].replace("pt",""))
-                        self.bottom=841.89 -(float(styleDict["margin-top"].replace("pt",""))+float(styleDict["height"].replace("pt","")))
-                        self.width = float(styleDict["width"].replace("pt",""))
-                        self.height = float(styleDict["height"].replace("pt",""))
+                        self.left=float(styleDict["left"])
+                        self.bottom=841.89 -(float(styleDict["margin-top"])+float(styleDict["height"]))
+                        self.width = float(styleDict["width"])
+                        self.height = float(styleDict["height"])
                 elif imageType == "image":
                         try:
-                                self.left=float(styleDict["margin-left"].replace("pt",""))
+                                self.left=float(styleDict["margin-left"])
                         except:
                                 self.left=0
                         try:
-                                self.bottom=841.89-(float(styleDict["margin-top"].replace("pt",""))+float(styleDict["height"].replace("pt","")))
+                                self.bottom=841.89-(float(styleDict["margin-top"])+float(styleDict["height"]))
                         except:
                                 self.bottom=0
-                        self.width = float(styleDict["width"].replace("pt",""))
-                        self.height = float(styleDict["height"].replace("pt",""))
+                        self.width = float(styleDict["width"])
+                        self.height = float(styleDict["height"])
 
 def alpha_to_color(image, color=(255, 255, 255)):
     image.load()  # needed for split()
