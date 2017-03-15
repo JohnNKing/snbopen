@@ -35,7 +35,6 @@ def addImage(snbFile,canvas,image,rels,element):
 		imgStr = decompress(imgStr)
 		width = ord(imgStr[5]) * 256 + ord(imgStr[4])
 		height = ord(imgStr[9]) * 256 + ord(imgStr[8])
-		print "width x height: " + str(width) + "x" + str(height)
 		try:
 			img = Image.frombytes("RGBA",(width,height),imgStr[52:])
 		except:
@@ -46,7 +45,6 @@ def addImage(snbFile,canvas,image,rels,element):
 		canvas.drawImage(img,0,0,595.27,841.89,mask="auto")
 		remove(filename)
 	elif imgFileName.endswith(".png"):
-                print element.getElementsByTagName("v:shape")[0].getAttribute("style")
 		style = imagePoss(element.getElementsByTagName("v:shape")[0].getAttribute("style"),"image")
 		img=Image.open(BytesIO(imgStr))
 		filename = "outTmp.png"
@@ -63,6 +61,18 @@ def addImage(snbFile,canvas,image,rels,element):
 		canvas.drawImage(img,style.left,style.bottom,style.width,style.height,mask="auto")
 		remove(filename)
 
+def addBgImage(snbFile,canvas,imgFileName,styleAttribute):
+	imgStr = zipRead(snbFile,imgFileName)
+	print "Adding image " + imgFileName
+
+	style = imagePoss(styleAttribute,"bg")
+	img=Image.open(BytesIO(imgStr))
+	filename = "outTmp.png"
+        img.save(filename)
+        img = ImageReader(filename)
+	canvas.drawImage(img,style.left,style.bottom,style.width,style.height,mask="auto")
+	remove(filename)
+
 def addText(canvas,element,styles):
 	for run in element.getElementsByTagName("sn:r"):
 		if(len(run.getElementsByTagName("sn:t")) > 0):
@@ -74,9 +84,15 @@ def addText(canvas,element,styles):
 			canvas.drawString(40,810-charStyle.size,text)
 			##TODO: support non-unicode characters
 
-
 def readRelsFile(snbFile):
 	relations = parseString(zipRead(snbFile,"snote/_rels/snote.xml.rels"))
+	rels=dict()
+	for relation in relations.getElementsByTagName("Relationship"):
+		rels[relation.getAttribute("Id")] = relation.getAttribute("Target")
+	return rels
+
+def readRelsMasterFile(snbFile):
+	relations = parseString(zipRead(snbFile,"snote/_rels/master.xml.rels"))
 	rels=dict()
 	for relation in relations.getElementsByTagName("Relationship"):
 		rels[relation.getAttribute("Id")] = relation.getAttribute("Target")
@@ -115,7 +131,10 @@ class imagePoss:
                 styleDict = dict(item.split(":") for item in style.replace("pt","").split(";"))
                 if imageType == "bg":
                         self.left=float(styleDict["left"])
-                        self.bottom=841.89 -(float(styleDict["margin-top"])+float(styleDict["height"]))
+                        try:
+                                self.bottom = 841.89 -(float(styleDict["margin-top"])+float(styleDict["height"]))
+                        except:
+                                self.bottom = 0
                         self.width = float(styleDict["width"])
                         self.height = float(styleDict["height"])
                 elif imageType == "image":
@@ -144,15 +163,28 @@ def snbToPdf(snbname,pdfname = None ):
 
 	rels = readRelsFile(snbFile)
 	charStyles = readCharStyles(snbFile)
-
 	snote = parseString(zipRead(snbFile,"snote/snote.xml"))
 	bodyElements=snote.firstChild.firstChild.childNodes
+
+        try:
+                master = parseString(zipRead(snbFile,"snote/master.xml"))
+                masterBodyElements=master.firstChild.firstChild.childNodes
+                bgImageId = master.getElementsByTagName("v:imagedata")[0].getAttribute("r:id")
+                bgImageStyle = master.getElementsByTagName("v:shape")[0].getAttribute("style")
+                relsMaster = readRelsMasterFile(snbFile)
+                bgImgFileName = "snote/" + relsMaster[bgImageId]
+        except:
+                bgImgFileName = None
+	
 	for element in bodyElements:
 		if element.nodeName=="sn:page":
 			if 'pdfCanvas' in vars():
 				pdfCanvas.showPage()
 			else:
 				pdfCanvas = canvas.Canvas(pdfname if pdfname else snbname.replace(".snb",".pdf"))
+
+                        if bgImgFileName is not None:
+                                addBgImage(snbFile,pdfCanvas,bgImgFileName,bgImageStyle)
 
 		#ussually images
 		elif element.nodeName == "sn:SNoteObj":
