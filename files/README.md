@@ -1,0 +1,1 @@
+Place your *.snb files in this directory

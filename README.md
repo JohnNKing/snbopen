@@ -3,7 +3,13 @@ snbopen
 
 convert samsung S-note files (.snb) to pdf
 
-use
+use (Docker)
+=======
+1. place your .snb files in ./files
+2. run "docker-compose up"
+3. ./files will now also contain the converted PDF files
+
+use (native)
 =======
 just run snbopen.py snbfilename [pdffilename].
 the script converts the file into pdf and open it with your default application for pdf files.

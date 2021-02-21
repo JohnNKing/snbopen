@@ -33,3 +33,10 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# MacOS Finder
+*.DS_Store
+
+# Do not accidentally commit your SNote files
+files/*.snb
+files/*.pdf
